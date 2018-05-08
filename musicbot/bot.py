@@ -3087,6 +3087,6 @@ class MusicBot(discord.Client):
             return Response(lyrics)
         except Exception as e:
             # return "Exception occurred \n" +str(e)
-            return Response("Error Occurred"+str(e))
+            return Response("Can't find the lyrics")
         
 
