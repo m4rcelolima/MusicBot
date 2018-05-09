@@ -3069,20 +3069,21 @@ class MusicBot(discord.Client):
         if leftover_args:
             if ';' in leftover_args:
                 raw = ''.join([args, *leftover_args])
-                print(raw)
-                
+                raw_with_space = '_'.join([args, *leftover_args])
                 artist = raw.partition(";")[0]
-                print(raw)
+                artist_with_space = raw_with_space.partition("_;_")[0]
                 song_title = raw.partition(";")[2]
+                song_title_with_space = raw_with_space.partition("_;_")[2]                
                 
-            
             else:
                 artist = args
+                artist_with_space = args
                 song_title = ''.join(leftover_args)
+                song_title_with_space = '_'.join(leftover_args)
         else:
             return Response("!lyrics artist ; song-name")
 
-
+        print(artist_with_space,song_title_with_space)
         artist = artist.lower()
         song_title = song_title.lower()
         # remove all except alphanumeric characters from artist and song_title
@@ -3090,9 +3091,11 @@ class MusicBot(discord.Client):
         song_title = re.sub('[^A-Za-z0-9]+', "", song_title)
         if artist.startswith("the"):    # remove starting 'the' from artist e.g. the who -> who
             artist = artist[3:]
-        url = "http://azlyrics.com/lyrics/"+artist+"/"+song_title+".html"
+        
 
+        
         try:
+            url = "http://azlyrics.com/lyrics/"+artist+"/"+song_title+".html"
             content = urllib.request.urlopen(url).read()
             soup = BeautifulSoup(content, 'html.parser')
             lyrics = str(soup)
@@ -3104,7 +3107,20 @@ class MusicBot(discord.Client):
             lyrics = lyrics.replace('<br/>','').replace('<br>','').replace('</br>','').replace('<i>',' ').replace('</i>','').replace('</div>','').strip()
             return Response(lyrics)
         except Exception as e:
-            # return "Exception occurred \n" +str(e)
-            return Response("Can't find the lyrics")
-        
+            try:
+                url = "https://lyrics.wikia.com/wiki/"+artist_with_space+":"+song_title_with_space
+                content = urllib.request.urlopen(url).read()
+                soup = BeautifulSoup(content, "html.parser")
+                lyricboxes = soup.findAll('div', {'class': 'lyricbox'})
 
+                for lyricbox in lyricboxes:
+                    for br in lyricbox.findAll('br'):
+                        br.replace_with("\n")
+
+                lyrics = str(lyricboxes)
+                lyrics = lyrics.replace('<br/>','').replace('<br>','').replace('</br>','').replace('<i>',' ').replace('</i>','').replace('</div>','').replace('[<div class="lyricbox">','').replace('<div class="lyricsbreak">','').replace(']','').strip()
+                return Response(lyrics)
+            except Exception as e:
+                print("Exception occurred \n" +str(e))
+                return Response("Can't find the lyrics")
+        
