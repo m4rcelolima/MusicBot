@@ -3118,7 +3118,7 @@ class MusicBot(discord.Client):
                         br.replace_with("\n")
 
                 lyrics = str(lyricboxes)
-                lyrics = lyrics.replace('<br/>','').replace('<br>','').replace('</br>','').replace('<i>',' ').replace('</i>','').replace('</div>','').replace('[<div class="lyricbox">','').replace('<div class="lyricsbreak">','').replace(']','').strip()
+                lyrics = lyrics.replace('<ruby>','').replace('</ruby>','').replace('<rb>','').replace('</rb>','').replace('<rp>','').replace('</rp>','').replace('<rt>','').replace('</rt>','').replace('<br/>','').replace('<br>','').replace('</br>','').replace('<i>',' ').replace('</i>','').replace('</div>','').replace('[<div class="lyricbox">','').replace('<div class="lyricsbreak">','').replace(']','').strip()
                 return Response(lyrics)
             except Exception as e:
                 print("Exception occurred \n" +str(e))
