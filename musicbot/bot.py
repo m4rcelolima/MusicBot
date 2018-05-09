@@ -3064,7 +3064,25 @@ class MusicBot(discord.Client):
             self.server_specific_data[server]['availability_paused'] = True
             player.pause()
 
-    async def cmd_lyrics(self, artist, song_title):
+    async def cmd_lyrics(self, args, leftover_args):
+
+        if leftover_args:
+            if ';' in leftover_args:
+                raw = ''.join([args, *leftover_args])
+                print(raw)
+                
+                artist = raw.partition(";")[0]
+                print(raw)
+                song_title = raw.partition(";")[2]
+                
+            
+            else:
+                artist = args
+                song_title = ''.join(leftover_args)
+        else:
+            return Response("!lyrics artist ; song-name")
+
+
         artist = artist.lower()
         song_title = song_title.lower()
         # remove all except alphanumeric characters from artist and song_title
