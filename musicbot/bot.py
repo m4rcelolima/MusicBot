@@ -3064,7 +3064,7 @@ class MusicBot(discord.Client):
             self.server_specific_data[server]['availability_paused'] = True
             player.pause()
 
-    async def cmd_lyrics(self, args, leftover_args):
+    async def cmd_lyrics(self, channel, args, leftover_args):
 
         if leftover_args:
             if ';' in leftover_args:
@@ -3086,6 +3086,8 @@ class MusicBot(discord.Client):
         print(artist_with_space,song_title_with_space)
         artist = artist.lower()
         song_title = song_title.lower()
+        artist_with_space = artist_with_space.lower()
+        song_title_with_space = song_title_with_space.lower()
         # remove all except alphanumeric characters from artist and song_title
         artist = re.sub('[^A-Za-z0-9]+', "", artist)
         song_title = re.sub('[^A-Za-z0-9]+', "", song_title)
@@ -3105,7 +3107,18 @@ class MusicBot(discord.Client):
             lyrics = lyrics.split(up_partition)[1]
             lyrics = lyrics.split(down_partition)[0]
             lyrics = lyrics.replace('<br/>','').replace('<br>','').replace('</br>','').replace('<i>',' ').replace('</i>','').replace('</div>','').strip()
-            return Response(lyrics)
+            try:
+                if len(lyrics)>1985:
+                    
+                    await self.safe_send_message(channel, "Lyric for " + artist + " - " + song_title)
+                    n = 1985
+                    for i in range(0, len(lyrics), n):
+                        await self.safe_send_message(channel, "```" + lyrics[i:i+n] + "```") #feel redundant
+                    return 
+                else:
+                    return Response(lyrics)
+            except Exception as e:
+                pass
         except Exception as e:
             try:
                 url = "https://lyrics.wikia.com/wiki/"+artist_with_space+":"+song_title_with_space
@@ -3119,7 +3132,18 @@ class MusicBot(discord.Client):
 
                 lyrics = str(lyricboxes)
                 lyrics = lyrics.replace('<ruby>','').replace('</ruby>','').replace('<rb>','').replace('</rb>','').replace('<rp>','').replace('</rp>','').replace('<rt>','').replace('</rt>','').replace('<br/>','').replace('<br>','').replace('</br>','').replace('<i>',' ').replace('</i>','').replace('</div>','').replace('[<div class="lyricbox">','').replace('<div class="lyricsbreak">','').replace(']','').strip()
-                return Response(lyrics)
+                try:
+                    if len(lyrics)>1985:
+                        
+                        await self.safe_send_message(channel, "Lyric for " + artist + " - " + song_title)
+                        n = 1985
+                        for i in range(0, len(lyrics), n):
+                            await self.safe_send_message(channel, "```" + lyrics[i:i+n] + "```") #feel redundant
+                        return 
+                    else:
+                        return Response(lyrics)
+                except Exception as e:
+                    pass
             except Exception as e:
                 print("Exception occurred \n" +str(e))
                 return Response("Can't find the lyrics")
