@@ -519,6 +519,15 @@ def check_stderr(data:bytes):
 
     return True
 
+def goto_seconds(self, secs):
+    if (not self.current_entry) or secs >= self.current_entry.duration:
+        return False
+
+    c_entry = self.current_entry
+    c_entry.set_start(secs)
+    self.play_entry(c_entry)
+    return True
+
 
 # if redistributing ffmpeg is an issue, it can be downloaded from here:
 #  - http://ffmpeg.zeranoe.com/builds/win32/static/ffmpeg-latest-win32-static.7z
