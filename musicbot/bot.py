@@ -1413,7 +1413,7 @@ class MusicBot(discord.Client):
             )
         return True
 
-    async def cmd_play(self, message, player, channel, author, permissions, leftover_args, song_url):
+    async def cmd_p(self, message, player, channel, author, permissions, leftover_args, song_url):
         """
         Usage:
             {command_prefix}play song_link
@@ -1466,7 +1466,7 @@ class MusicBot(discord.Client):
                         for i in res['tracks']['items']:
                             song_url = i['name'] + ' ' + i['artists'][0]['name']
                             log.debug('Processing {0}'.format(song_url))
-                            await self.cmd_play(message, player, channel, author, permissions, leftover_args, song_url)
+                            await self.cmd_p(message, player, channel, author, permissions, leftover_args, song_url)
                         await self.safe_delete_message(procmesg)
                         return Response(self.str.get('cmd-play-spotify-album-queued', "Enqueued `{0}` with **{1}** songs.").format(res['name'], len(res['tracks']['items'])))
 
@@ -1479,7 +1479,7 @@ class MusicBot(discord.Client):
                         for i in res['tracks']['items']:
                             song_url = i['track']['name'] + ' ' + i['track']['artists'][0]['name']
                             log.debug('Processing {0}'.format(song_url))
-                            await self.cmd_play(message, player, channel, author, permissions, leftover_args, song_url)
+                            await self.cmd_p(message, player, channel, author, permissions, leftover_args, song_url)
                         await self.safe_delete_message(procmesg)
                         return Response(self.str.get('cmd-play-spotify-playlist-queued', "Enqueued `{0}` with **{1}** songs.").format(res['name'], len(res['tracks']['items'])))
 
@@ -1552,7 +1552,7 @@ class MusicBot(discord.Client):
                 # TODO: handle 'webpage_url' being 'ytsearch:...' or extractor type
                 song_url = info['entries'][0]['webpage_url']
                 info = await self.downloader.extract_info(player.playlist.loop, song_url, download=False, process=False)
-                # Now I could just do: return await self.cmd_play(player, channel, author, song_url)
+                # Now I could just do: return await self.cmd_p(player, channel, author, song_url)
                 # But this is probably fine
 
             # TODO: Possibly add another check here to see about things like the bandcamp issue
@@ -1565,7 +1565,7 @@ class MusicBot(discord.Client):
 
                 if info['extractor'].lower() in ['youtube:playlist', 'soundcloud:set', 'bandcamp:album']:
                     try:
-                        return await self._cmd_play_playlist_async(player, channel, author, permissions, song_url, info['extractor'])
+                        return await self._cmd_p_playlist_async(player, channel, author, permissions, song_url, info['extractor'])
                     except exceptions.CommandError:
                         raise
                     except Exception as e:
@@ -1655,7 +1655,7 @@ class MusicBot(discord.Client):
                     log.debug("Assumed url \"%s\" was a single entry, was actually a playlist" % song_url)
                     log.debug("Using \"%s\" instead" % e.use_url)
 
-                    return await self.cmd_play(player, channel, author, permissions, leftover_args, e.use_url)
+                    return await self.cmd_p(player, channel, author, permissions, leftover_args, e.use_url)
 
                 reply_text = self.str.get('cmd-play-song-reply', "Enqueued `%s` to be played. Position in queue: %s")
                 btext = entry.title
@@ -1677,7 +1677,7 @@ class MusicBot(discord.Client):
 
         return Response(reply_text, delete_after=30)
 
-    async def _cmd_play_playlist_async(self, player, channel, author, permissions, playlist_url, extractor_type):
+    async def _cmd_p_playlist_async(self, player, channel, author, permissions, playlist_url, extractor_type):
         """
         Secret handler to use the async wizardry to make playlist queuing non-"blocking"
         """
@@ -1909,7 +1909,7 @@ class MusicBot(discord.Client):
 
             if res.reaction.emoji == '\u2705':  # check
                 await self.safe_delete_message(result_message)
-                await self.cmd_play(message, player, channel, author, permissions, [], e['webpage_url'])
+                await self.cmd_p(message, player, channel, author, permissions, [], e['webpage_url'])
                 return Response(self.str.get('cmd-search-accept', "Alright, coming right up!"), delete_after=30)
             elif res.reaction.emoji == '\U0001F6AB':  # cross
                 await self.safe_delete_message(result_message)
@@ -2148,7 +2148,7 @@ class MusicBot(discord.Client):
                 self.str.get('cmd-remove-noperms', "You do not have the valid permissions to remove that entry from the queue, make sure you're the one who queued it or have instant skip permissions"), expire_in=20
             )
 
-    async def cmd_skip(self, player, channel, author, message, permissions, voice_channel, param=''):
+    async def cmd_s(self, player, channel, author, message, permissions, voice_channel, param=''):
         """
         Usage:
             {command_prefix}skip [force/f]
@@ -2602,7 +2602,7 @@ class MusicBot(discord.Client):
         return Response("Changed the bot's avatar.", delete_after=20)
 
 
-    async def cmd_disconnect(self, server):
+    async def cmd_d(self, server):
         await self.disconnect_voice_client(server)
         return Response("Disconnected from `{0.name}`".format(server), delete_after=20)
 
@@ -3147,4 +3147,73 @@ class MusicBot(discord.Client):
             except Exception as e:
                 print("Exception occurred \n" +str(e))
                 return Response("Can't find the lyrics")
+
+    async def cmd_fwd(self, player, timestamp):
+        """
+        Usage:
+            {command_prefix}fwd <timestamp>
+
+        Forward <timestamp> into the current entry
+        """
+
+        parts = timestamp.split(":")
+        if len(parts) < 1:  # Shouldn't occur, but who knows?
+            return Response("Please provide a valid timestamp", delete_after=20)
+
+        # seconds, minutes, hours, days
+        values = (1, 60, 60 * 60, 60 * 60 * 24)
+
+        secs = 0
+        for i in range(len(parts)):
+            try:
+                v = int(parts[i])
+            except:
+                continue
+
+            j = len(parts) - i - 1
+            if j >= len(values):  # If I don't have a conversion from this to seconds
+                continue
+
+            secs += v * values[j]
+
+        if player.current_entry is None:
+            return Response("Nothing playing!", delete_after=20)
+
+        if not player.goto_seconds(player.progress + secs):
+            return Response("Timestamp exceeds song duration!", delete_after=20)
+
+    async def cmd_rwd(self, player, timestamp):
+        """
+        Usage:
+            {command_prefix}fwd <timestamp>
+
+        Rewind <timestamp> into the current entry
+        """
+
+        parts = timestamp.split(":")
+        if len(parts) < 1:  # Shouldn't occur, but who knows?
+            return Response("Please provide a valid timestamp", delete_after=20)
+
+        # seconds, minutes, hours, days
+        values = (1, 60, 60 * 60, 60 * 60 * 24)
+
+        secs = 0
+        for i in range(len(parts)):
+            try:
+                v = int(parts[i])
+            except:
+                continue
+
+            j = len(parts) - i - 1
+            if j >= len(values):  # If I don't have a conversion from this to seconds
+                continue
+
+            secs += v * values[j]
+
+        if player.current_entry is None:
+            return Response("Nothing playing!", delete_after=20)
+
+        if not player.goto_seconds(player.progress - secs):
+            return Response("Timestamp exceeds song duration!", delete_after=20)
+
         
