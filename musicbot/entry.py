@@ -79,17 +79,25 @@ class BasePlaylistEntry(Serializable):
 
 
 class URLPlaylistEntry(BasePlaylistEntry):
-    def __init__(self, playlist, url, title, duration=0, expected_filename=None, **meta):
+    def __init__(self, playlist, url, title, duration=0, expected_filename=None, start_seconds=0, **meta):
         super().__init__()
 
         self.playlist = playlist
         self.url = url
         self.title = title
         self.duration = duration
+        self.start_seconds = start_seconds
         self.expected_filename = expected_filename
         self.meta = meta
 
         self.download_folder = self.playlist.downloader.download_folder
+
+    def set_start(self, sec):
+        if sec > self.duration or sec < 0:
+            return False
+
+        self.start_seconds = sec
+        return True
 
     def __json__(self):
         return self._enclose_json({
@@ -97,6 +105,7 @@ class URLPlaylistEntry(BasePlaylistEntry):
             'url': self.url,
             'title': self.title,
             'duration': self.duration,
+            'start_seconds': self.start_seconds,
             'downloaded': self.is_downloaded,
             'expected_filename': self.expected_filename,
             'filename': self.filename,
@@ -119,6 +128,7 @@ class URLPlaylistEntry(BasePlaylistEntry):
             url = data['url']
             title = data['title']
             duration = data['duration']
+            start_seconds = data['start_seconds']
             downloaded = data['downloaded'] if playlist.bot.config.save_videos else False
             filename = data['filename'] if downloaded else None
             expected_filename = data['expected_filename']

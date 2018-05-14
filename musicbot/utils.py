@@ -2,6 +2,7 @@ import sys
 import logging
 import aiohttp
 import inspect
+import unicodedata
 
 from hashlib import md5
 from .constants import DISCORD_MSG_CHAR_LIMIT
@@ -151,3 +152,16 @@ def color_supported():
 def _func_():
     # emulate __func__ from C++
     return inspect.currentframe().f_back.f_code.co_name
+
+def format_time_ffmpeg(s):
+
+    total_msec = s * 1000
+    total_seconds = s
+    total_minutes = s / 60
+    total_hours = s / 3600
+    msec = int(total_msec % 1000)
+    sec = int(total_seconds % 60 - (msec / 3600000))
+    mins = int(total_minutes % 60 - (sec / 3600) - (msec / 3600000))
+    hours = int(total_hours - (mins / 60) - (sec / 3600) - (msec / 3600000))
+
+    return "{:02d}:{:02d}:{:02d}".format(hours, mins, sec)
